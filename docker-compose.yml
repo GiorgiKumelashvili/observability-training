@@ -1,0 +1,50 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    restart: unless-stopped
+    depends_on:
+      - csharp_app
+      - victoria-metrics
+
+  victoria-metrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoria-metrics
+
+    volumes:
+      - victoria_data:/victoria-metrics-data
+      - ./victoria-metrics.yml:/etc/victoria-metrics/victoria-metrics.yml
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-selfScrapeInterval=5s"
+      - "-promscrape.config=/etc/victoria-metrics/victoria-metrics.yml"
+
+    # volumes:
+    #   - victoria_data:/victoria-metrics-data
+    ports:
+      - "8428:8428"
+    # command:
+    #   - "-storageDataPath=/victoria-metrics-data"
+    #   - "-selfScrapeInterval=5s"
+    restart: unless-stopped
+
+  csharp_app:
+    build:
+      context: ./csharp_app
+      dockerfile: Dockerfile
+    container_name: csharp_app
+    ports:
+      - "5001:8080"
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  victoria_data:
